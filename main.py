@@ -51,21 +51,36 @@ for destination in sheet_data:
     cheapest_flight = find_cheapest_flight(flights)
     print(f"{destination['city']}: £{cheapest_flight.price}")
 
-    if cheapest_flight.price != "N/A" and cheapest_flight.price < destination["lowestPrice"]:
-        print(f"Lower price flight found to {destination['city']}!")
-        nfm.send_sms(
-            message_body=f"Low price alert! Only £{cheapest_flight.price} to fly "
-                         f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "
-                         f"on {cheapest_flight.out_date} until {cheapest_flight.return_date}."
-        )
-        # SMS not working? Try whatsapp instead.
-        # nfm.send_whatsapp(
-        #     message_body=f"Low price alert! Only £{cheapest_flight.price} to fly "
-        #                  f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "
-        #                  f"on {cheapest_flight.out_date} until {cheapest_flight.return_date}."
-        # )
     # slowing down requests to avoid rate limit
     time.sleep(2)
+
+    # ==================== Search for indirect flight if N/A ====================
+    if cheapest_flight.price == "N/A":
+        print(f"No direct flight to {destination['city']}. Looking for indirect flights...")
+        stopover_flights = fs.get_flights(
+            ORIGIN_CITY_IATA,
+            destination["iataCode"],
+            from_time=tomorrow,
+            to_time=one_month,
+            is_direct=False
+        )
+
+        cheapest_flight = find_cheapest_flight(stopover_flights)
+        print(f"Cheapest indirect flight price is: £{cheapest_flight.price}")
+
+    # ==================== Send Notifications and Emails  ====================
+    # nfm.send_sms(
+    #     message_body=f"Low price alert! Only £{cheapest_flight.price} to fly "
+    #                  f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "
+    #                  f"on {cheapest_flight.out_date} until {cheapest_flight.return_date}."
+    # )
+    # SMS not working? Try whatsapp instead.
+    # nfm.send_whatsapp(
+    #     message_body=f"Low price alert! Only £{cheapest_flight.price} to fly "
+    #                  f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "
+    #                  f"on {cheapest_flight.out_date} until {cheapest_flight.return_date}."
+    # )
+
 
 # dm.destination_data = sheet_data
 # dm.update_iata_code()
