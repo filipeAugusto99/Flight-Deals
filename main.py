@@ -17,6 +17,7 @@ nfm = NotificationManager()
 # Set origin airport
 ORIGIN_CITY_IATA = "LON"
 
+
 # ==================== Update the Airport Codes in Google Sheet ====================
 
 #  In main.py check if sheet_data contains any values for the "iataCode" key.
@@ -32,6 +33,7 @@ for row in sheet_data:
         # slowing down requests to avoid rate limit
         time.sleep(2)
 print(f"sheet_data:\n {sheet_data}")
+
 
 # ==================== Search for Flights ====================
 
@@ -69,6 +71,27 @@ for destination in sheet_data:
         print(f"Cheapest indirect flight price is: £{cheapest_flight.price}")
 
     # ==================== Send Notifications and Emails  ====================
+    if cheapest_flight.price != "N/A" and cheapest_flight.price < destination["lowestPrice"]:
+
+        if cheapest_flight.stops == 0:
+            message = f"Low price alert! Only GBP {cheapest_flight.price} to fly direct "\
+                    f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "\
+                    f"on {cheapest_flight.out_date} until {cheapest_flight.return_date}"
+        else:
+            message = f"Low price alert! Only GBP {cheapest_flight.price} to fly "\
+                      f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "\
+                      f"with {cheapest_flight.stops} stop(s) "\
+                      f"departing on {cheapest_flight.out_date} and returning on {cheapest_flight.return_date}."
+
+        print(f"Check your email. Lower price flight found to {destination['city']}!")
+
+        # ==================== Retrieve your customer emails ====================
+        customer_data = dm.get_customer_emails()
+        # Verify the name of your email column in your sheet. Yours may be different from mine
+        customer_email_list = [row["what'sYourEmail?"] for row in customer_data]
+        # print(f"Your email list includes {customer_email_list}")
+        nfm.send_emails(email_list=customer_email_list, email_body=message)
+
     # nfm.send_sms(
     #     message_body=f"Low price alert! Only £{cheapest_flight.price} to fly "
     #                  f"from {cheapest_flight.origin_airport} to {cheapest_flight.destination_airport}, "
@@ -82,5 +105,7 @@ for destination in sheet_data:
     # )
 
 
-# dm.destination_data = sheet_data
-# dm.update_iata_code()
+dm.destination_data = sheet_data
+dm.update_iata_code()
+
+
